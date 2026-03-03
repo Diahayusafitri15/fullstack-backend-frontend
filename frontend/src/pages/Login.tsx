@@ -1,52 +1,104 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-// PERBAIKAN: Gunakan ../ untuk keluar dari folder 'pages'
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "react-router-dom";
+import { loginUser, LoginResponse } from "../api/auth.service";
+import { setToken, setUserRole } from "../utils/storage";
+import axios from "axios";
 
-const Login = () => {
-  const [password, setPassword] = useState('');
+const loginSchema = z.object({
+  email: z.string().email("Email tidak valid"),
+  password: z.string().min(3, "Password minimal 3 karakter"),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
+
+export default function Login() {
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Password sederhana untuk akses admin SOUVNELA
-    if (password === "admin123") { 
-      localStorage.setItem('isLoggedIn', 'true');
-      navigate('/admin');
-    } else {
-      alert("Password salah, Diah! Coba 'admin123'");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginForm) => {
+    try {
+      const response = await loginUser(data);
+
+      // Karena sudah typed LoginResponse, ini aman
+      const { token, role }: LoginResponse = response.data;
+
+      // Simpan ke localStorage
+      setToken(token);
+      setUserRole(role);
+
+      // Redirect berdasarkan role
+      if (role === "ADMIN") {
+        navigate("/admin/posts", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error:", error.response?.data);
+      } else {
+        console.error("Unexpected error:", error);
+      }
+
+      alert("Login gagal. Email atau password salah.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pink-50 p-4 font-sans">
-      <Card className="w-full max-w-md border-none shadow-2xl rounded-[2rem] overflow-hidden">
-        <CardHeader className="bg-pink-500 text-white p-10 text-center">
-          <CardTitle className="text-3xl font-black italic tracking-tighter">SOUVNELA.</CardTitle>
-          <p className="text-pink-100 text-xs mt-2 uppercase tracking-widest font-bold">Admin Login</p>
-        </CardHeader>
-        <CardContent className="p-10 space-y-6">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <Input 
-              type="password" 
-              placeholder="Admin Password" 
-              className="border-pink-100 focus:ring-pink-400 rounded-xl py-6 text-center"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button type="submit" className="w-full bg-pink-500 hover:bg-pink-600 text-white rounded-xl py-6 font-bold shadow-lg shadow-pink-200 transition-all">
-              MASUK KE DASHBOARD
-            </Button>
-          </form>
-          <button onClick={() => navigate('/')} className="w-full text-pink-400 text-xs hover:underline">
-            ← Kembali ke Beranda User
-          </button>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm space-y-4"
+      >
+        <h1 className="text-2xl font-bold text-center">Login</h1>
+
+        {/* Email */}
+        <div>
+          <input
+            {...register("email")}
+            placeholder="Email"
+            className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-400"
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm">
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div>
+          <input
+            type="password"
+            {...register("password")}
+            placeholder="Password"
+            className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-pink-400"
+          />
+          {errors.password && (
+            <p className="text-red-500 text-sm">
+              {errors.password.message}
+            </p>
+          )}
+        </div>
+
+        {/* Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-pink-500 text-white py-2 rounded hover:bg-pink-600 disabled:opacity-50 transition"
+        >
+          {isSubmitting ? "Loading..." : "Login"}
+        </button>
+      </form>
     </div>
   );
-};
-
-export default Login;
+}
