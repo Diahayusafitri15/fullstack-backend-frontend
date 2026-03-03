@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
+// Tambahkan import halaman Home/Landing Page User di bawah ini
+import Home from "./pages/user/HomePage"; 
 import DashboardLayout from "./pages/admin/DashboardLayout";
 import Posts from "./pages/admin/Posts";
 import Categories from "./pages/admin/Categories";
@@ -11,6 +13,9 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 export default function App() {
   return (
     <Routes>
+      {/* USER / LANDING PAGE */}
+      <Route path="/" element={<Home />} />
+
       {/* LOGIN */}
       <Route path="/login" element={<Login />} />
 
@@ -34,7 +39,7 @@ export default function App() {
       </Route>
 
       {/* DEFAULT */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
