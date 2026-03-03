@@ -1,0 +1,8 @@
+node_modules/
+.env
+public/images/*
+!.gitkeep
+minio.exe
+minio_data/
+data/
+*.tmp
