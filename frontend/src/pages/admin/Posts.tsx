@@ -56,7 +56,7 @@ export default function Posts() {
     <div className="max-w-6xl mx-auto">
       {/* HEADER SECTION */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-black text-gray-800 tracking-tight">SOUVNELA PRODUCT LIST</h1>
+        <h1 className="text-2xl font-black text-gray-800 tracking-tight">PRODUCT LIST</h1>
         <button
           onClick={() => navigate("/admin/posts/create")}
           className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-pink-100"

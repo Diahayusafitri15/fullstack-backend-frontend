@@ -1,17 +1,13 @@
 import axiosInstance from "./axios";
-import { Category } from "../types/category"; // Import tipe Category dari rumahnya
-
-/* ========================= */
-/* TYPES (Pindahkan ke src/types/post.ts jika ingin lebih rapi) */
-/* ========================= */
+import { Category } from "../types/category";
 
 export interface Post {
   id: number;
   judul: string;
   isi: string;
-  gambar: string; // Akan berisi "my-bucket/nama-file.webp"
+  gambar: string;
   category_id: number;
-  nama_kategori?: string; // Tambahkan opsional (?) agar tidak error jika join gagal
+  nama_kategori?: string;
   created_at: string;
 }
 
@@ -21,22 +17,17 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-// Interface ini penting untuk memastikan AdminDashboard mengirim data yang benar
 export interface CreatePostPayload {
   judul: string;
   isi: string;
-  category_id: string; // Gunakan string karena value dari <Select> biasanya string
+  category_id: string;
   gambar: File | null;
 }
 
-/* ========================= */
-/* API SERVICES */
-/* ========================= */
-
-// 1. Ambil Semua Kategori (Penting untuk dropdown di Admin Panel)
+// 1. Ambil Semua Kategori
 export const getCategories = async (): Promise<Category[]> => {
   const res = await axiosInstance.get<ApiResponse<Category[]>>("/categories");
-  return res.data.data || []; // Tambahkan fallback array kosong agar .map() tidak crash
+  return res.data.data || [];
 };
 
 // 2. Ambil Semua Postingan
@@ -45,43 +36,39 @@ export const getPosts = async (): Promise<Post[]> => {
   return res.data.data || [];
 };
 
-// 3. Ambil Satu Postingan
-export const getPostById = async (id: number): Promise<Post> => {
+// 3. Ambil Satu Postingan Berdasarkan ID
+export const getPostById = async (id: string | number): Promise<Post> => {
   const res = await axiosInstance.get<ApiResponse<Post>>(`/posts/${id}`);
   return res.data.data;
 };
 
-// 4. Buat Postingan Baru (Upload ke MinIO)
+// 4. Buat Postingan Baru
 export const createPost = async (data: CreatePostPayload) => {
   const formData = new FormData();
   formData.append("judul", data.judul);
   formData.append("isi", data.isi);
   formData.append("category_id", data.category_id);
-  
-  if (data.gambar) {
-    formData.append("gambar", data.gambar);
-  }
+  if (data.gambar) formData.append("gambar", data.gambar);
 
-  // Axios secara otomatis akan mengatur boundary jika menggunakan FormData
   return axiosInstance.post("/posts", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
 };
 
-// 5. Update Postingan
-export const updatePost = async (id: number, data: Partial<CreatePostPayload>) => {
+// 5. Update Postingan (Memperbaiki Tombol Update yang Macet)
+export const updatePost = async (id: string | number, data: Partial<CreatePostPayload>) => {
   const formData = new FormData();
   if (data.judul) formData.append("judul", data.judul);
   if (data.isi) formData.append("isi", data.isi);
-  if (data.category_id) formData.append("category_id", data.category_id);
-  if (data.gambar) formData.append("gambar", data.gambar);
+  if (data.category_id) formData.append("category_id", String(data.category_id));
+  
+  // Kirim gambar hanya jika user memilih file baru di input
+  if (data.gambar instanceof File) {
+    formData.append("gambar", data.gambar);
+  }
 
   return axiosInstance.put(`/posts/${id}`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
 };
 

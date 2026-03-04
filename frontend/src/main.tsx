@@ -5,20 +5,28 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
 
-const queryClient = new QueryClient();
+// Inisialisasi QueryClient untuk manajemen state API
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Menghindari reload data saat pindah tab
+      retry: 1,
+    },
+  },
+});
 
 const rootElement = document.getElementById("root");
 
-if (!rootElement) {
-  throw new Error("Root element not found");
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+} else {
+  console.error("Gagal menemukan elemen root. Pastikan index.html memiliki <div id='root'></div>");
 }
-
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
-);
