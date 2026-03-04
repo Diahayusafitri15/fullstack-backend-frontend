@@ -20,9 +20,9 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-100">
+    <div className="min-h-screen flex bg-pink-200">
       {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r p-6 shadow-sm">
+      <aside className="w-64 bg-pink-300 border-r p-6 shadow-sm">
         <h1 className="text-xl font-bold mb-8 text-pink-600">
           Admin Dashboard
         </h1>
@@ -33,7 +33,7 @@ export default function DashboardLayout() {
             className={({ isActive }) =>
               `block px-4 py-2 rounded-lg transition ${
                 isActive
-                  ? "bg-pink-500 text-white"
+                  ? "bg-pink-500 text-white font-bold text-2xl"
                   : "hover:bg-pink-100 text-gray-700"
               }`
             }
@@ -46,7 +46,7 @@ export default function DashboardLayout() {
             className={({ isActive }) =>
               `block px-4 py-2 rounded-lg transition ${
                 isActive
-                  ? "bg-pink-500 text-white"
+                  ? "bg-pink-500 text-white font-bold text-2xl"
                   : "hover:bg-pink-100 text-gray-700"
               }`
             }

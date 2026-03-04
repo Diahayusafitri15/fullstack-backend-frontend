@@ -42,13 +42,14 @@ export default function HomePage() {
   );
 
   return (
-    <div className="bg-[#FFF5F7] min-h-screen">
+    <div className="bg-pink-200 min-h-screen">
       {/* HERO SECTION */}
-      <header className="bg-white py-16 px-6 text-center shadow-sm">
-        <h1 className="text-4xl font-black text-pink-600 mb-2 italic tracking-tighter uppercase">MY KATALOG</h1>
-        <p className="text-gray-500 max-w-md mx-auto italic">
-          YOK KEPOIN YANG ADA DISINI!
-        </p>
+      <header className="bg-pink-300 py-16 px-6 text-center shadow-sm">
+        <marquee scrollamount="15"><h1 className="text-7xl font-black text-pink-600 mb-2 times-new-roman tracking-tighter uppercase">🎀MY KATALOG YAHYU🎀</h1></marquee>
+
+        <marquee scrollamount="10"><p className="text-3xl font-black text-pink-500 mb-2 times-new-roman tracking-tighter uppercase">
+        💅YOK KEPOIN YANG ADA DISINI💅
+        </p></marquee>
       </header>
 
       {/* KATALOG PRODUK */}
@@ -139,9 +140,9 @@ export default function HomePage() {
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white border-t py-12 text-center">
-        <p className="text-pink-600 font-black tracking-widest mb-2 uppercase italic">YAHYU</p>
-        <p className="text-gray-400 text-[10px] font-bold tracking-widest uppercase">
+      <footer className="bg-pink-300 border-t py-12 text-center">
+        <p className="text-pink-600 font-black tracking-widest mb-2 uppercase italic">🎀YAHYU🎀</p>
+        <p className="text-black-400 text-[10px] font-bold tracking-widest uppercase">
           &copy; 2026 YAHYU HANDMADE. All Rights Reserved.
         </p>
       </footer>
