@@ -9,7 +9,7 @@ exports.getAll = async (req, res) => {
     try {
         // 1. Ambil parameter dari query URL, beri nilai default jika kosong
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 3;
+        const limit = parseInt(req.query.limit) || 8;
         const search = req.query.search || "";
 
         // 2. Panggil model dengan mengirimkan parameter tersebut

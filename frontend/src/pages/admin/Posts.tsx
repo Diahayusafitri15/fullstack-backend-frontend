@@ -1,16 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPosts, deletePost, Post } from "../../api/post.service";
+import { getPosts, deletePost } from "../../api/post.service"; // Hapus import type Post jika tidak digunakan di generics
 import { useNavigate } from "react-router-dom";
 
 export default function Posts() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // 1. Fetching Data
-  const { data: posts = [], isLoading, isError } = useQuery<Post[]>({
+  // 1. Fetching Data - Sesuaikan Generics ke 'any' atau PaginatedPostResponse agar tidak error
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["posts"],
-    queryFn: getPosts,
+    queryFn: () => getPosts(1, 100), // Untuk Admin, kita ambil 100 data sekaligus agar tampil semua
   });
+
+  // --- PERBAIKAN: Ambil array 'data' dari dalam object response ---
+  // Jika 'data' dari query masih loading atau undefined, fallback ke array kosong []
+  const posts = data?.data || []; 
 
   // 2. Mutation untuk Hapus Post
   const deleteMutation = useMutation({
@@ -24,13 +28,9 @@ export default function Posts() {
     }
   });
 
-  // 3. Helper URL Gambar dengan Sanitasi Karakter
+  // 3. Helper URL Gambar (Tetap sama)
   const getImageUrl = (path: string) => {
     if (!path) return "https://via.placeholder.com/400x300?text=No+Image";
-    
-    /** * PERBAIKAN: Menghapus tanda kutip (") atau spasi di ujung URL 
-     * agar MinIO tidak error "syntax is incorrect" di Windows.
-     */
     return path.trim().replace(/"/g, "");
   };
 
@@ -54,7 +54,7 @@ export default function Posts() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* HEADER SECTION */}
+      {/* HEADER SECTION - Tetap sama */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-black text-gray-800 tracking-tight">PRODUCT LIST</h1>
         <button
@@ -72,19 +72,19 @@ export default function Posts() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {posts.map((post) => (
+          {/* Sekarang posts.map sudah aman karena posts adalah Array */}
+          {posts.map((post: any) => (
             <div 
               key={post.id} 
               className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-300"
             >
-              {/* IMAGE AREA */}
+              {/* IMAGE AREA - Tetap sama */}
               <div className="relative h-48 w-full bg-gray-100">
                 <img
                   src={getImageUrl(post.gambar)}
                   alt={post.judul}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   onError={(e) => {
-                    // Fallback jika URL MinIO bermasalah
                     e.currentTarget.src = "https://via.placeholder.com/400x300?text=Image+Error";
                   }}
                 />
@@ -93,14 +93,14 @@ export default function Posts() {
                 </div>
               </div>
 
-              {/* CONTENT AREA */}
+              {/* CONTENT AREA - Tetap sama */}
               <div className="p-5 flex-1 flex flex-col">
                 <h2 className="text-lg font-bold text-gray-800 mb-2 line-clamp-1">{post.judul}</h2>
                 <p className="text-gray-500 text-sm line-clamp-3 mb-4 flex-1">
                   {post.isi}
                 </p>
 
-                {/* ACTION BUTTONS */}
+                {/* ACTION BUTTONS - Tetap sama */}
                 <div className="flex gap-2 mt-auto pt-4 border-t border-gray-50">
                   <button
                     onClick={() => navigate(`/admin/posts/${post.id}`)}
