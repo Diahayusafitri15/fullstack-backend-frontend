@@ -1,29 +1,27 @@
-import { useState } from "react"; // Tambahkan useState untuk pagination
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPosts, Post } from "../../api/post.service";
+import { getPosts } from "../../api/post.service"; // Pastikan fungsi ini menerima parameter (page, limit)
 import { Link } from "react-router-dom";
 
-// Sanitasi URL agar gambar muncul tanpa error syntax di Windows/MinIO
 const getImageUrl = (path: string) => {
   if (!path) return "https://via.placeholder.com/400x300?text=No+Image";
   return path.trim().replace(/"/g, "");
 };
 
 export default function HomePage() {
-  // --- STATE PAGINATION ---
   const [currentPage, setCurrentPage] = useState(1);
-  const postsPerPage = 8; // Tampilkan 8 produk per halaman
+  const postsPerPage = 4; 
 
-  const { data: posts = [], isLoading, isError, error } = useQuery<Post[]>({
-    queryKey: ["posts"],
-    queryFn: getPosts,
+  // --- PERBAIKAN: Kirim currentPage ke queryKey agar React Query re-fetch otomatis ---
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["posts", currentPage], // currentPage masuk ke key
+    queryFn: () => getPosts(currentPage, postsPerPage), // Kirim page & limit ke service
   });
 
-  // --- LOGIKA PAGINATION ---
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
-  const totalPages = Math.ceil(posts.length / postsPerPage);
+  // Ambil data dari response backend baru (menyesuaikan struktur res.json di controller)
+  const posts = data?.data || [];
+  const totalPages = data?.total_pages || 1;
+  const totalItems = data?.total_items || 0;
 
   if (isLoading) return (
     <div className="flex justify-center items-center min-h-screen">
@@ -35,7 +33,6 @@ export default function HomePage() {
     <div className="flex justify-center items-center min-h-screen p-6 text-center">
       <div className="bg-red-50 p-6 rounded-3xl border border-red-100">
         <p className="text-red-500 font-bold uppercase tracking-tight">Gagal memuat data souvenir</p>
-        {/* READ VALIDATION MESSAGE: Menampilkan pesan error dari server jika ada */}
         <p className="text-red-400 text-sm mt-2 italic">{(error as any)?.response?.data?.message || "Pastikan server API anda sudah aktif"}</p>
       </div>
     </div>
@@ -43,12 +40,11 @@ export default function HomePage() {
 
   return (
     <div className="bg-pink-200 min-h-screen">
-      {/* HERO SECTION */}
+      {/* HERO SECTION - TETAP SAMA */}
       <header className="bg-pink-300 py-16 px-6 text-center shadow-sm">
         <marquee scrollamount="15"><h1 className="text-7xl font-black text-pink-600 mb-2 times-new-roman tracking-tighter uppercase">🎀MY KATALOG YAHYU🎀</h1></marquee>
-
         <marquee scrollamount="10"><p className="text-3xl font-black text-pink-500 mb-2 times-new-roman tracking-tighter uppercase">
-        💅YOK KEPOIN YANG ADA DISINI💅
+          💅YOK KEPOIN YANG ADA DISINI💅
         </p></marquee>
       </header>
 
@@ -59,7 +55,7 @@ export default function HomePage() {
             Katalog 
           </h2>
           <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-            {posts.length} Koleksi
+            {totalItems} Koleksi {/* Menggunakan totalItems dari server */}
           </span>
         </div>
         
@@ -70,8 +66,8 @@ export default function HomePage() {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {/* Gunakan currentPosts hasil slice pagination */}
-              {currentPosts.map((post) => (
+              {/* Langsung map posts (tidak perlu di-slice lagi) */}
+              {posts.map((post: any) => (
                 <Link 
                   to={`/product/${post.id}`} 
                   key={post.id} 
@@ -105,14 +101,14 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* --- KONTROL PAGINATION --- */}
+            {/* --- KONTROL PAGINATION - STYLE TETAP --- */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-3 mt-16">
                 <button 
                   disabled={currentPage === 1}
                   onClick={() => {
                     setCurrentPage(prev => prev - 1);
-                    window.scrollTo(0, 0); // Scroll ke atas saat ganti halaman
+                    window.scrollTo(0, 0);
                   }}
                   className="w-12 h-12 flex items-center justify-center bg-white rounded-2xl text-pink-500 shadow-sm disabled:opacity-20 hover:bg-pink-500 hover:text-white transition-all font-bold"
                 >
@@ -139,7 +135,7 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* FOOTER */}
+      {/* FOOTER - TETAP SAMA */}
       <footer className="bg-pink-300 border-t py-12 text-center">
         <p className="text-pink-600 font-black tracking-widest mb-2 uppercase italic">🎀YAHYU🎀</p>
         <p className="text-black-400 text-[10px] font-bold tracking-widest uppercase">

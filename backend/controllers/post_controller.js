@@ -7,20 +7,37 @@ const baseUrl = process.env.MINIO_BASE_URL;
 
 exports.getAll = async (req, res) => {
     try {
-        const data = await Post.getAll();
-        
-        // Map data agar kolom gambar berisi URL lengkap
-        const formattedData = data.rows.map(item => ({
+        // 1. Ambil parameter dari query URL, beri nilai default jika kosong
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 3;
+        const search = req.query.search || "";
+
+        // 2. Panggil model dengan mengirimkan parameter tersebut
+        const { rows, totalItems } = await Post.getAll(page, limit, search);
+
+        // 3. Hitung total halaman
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // 4. Map data agar gambar berisi URL lengkap
+        const formattedData = rows.map(item => ({
             ...item,
             gambar: item.gambar ? `${baseUrl}/${item.gambar}` : null
         }));
-        
-        response.success(res, formattedData);
+
+        // 5. Kirim response lengkap dengan info pagination
+        res.status(200).json({
+            status: "success",
+            message: "Data postingan berhasil diambil",
+            data: formattedData,
+            total_items: totalItems,
+            total_pages: totalPages,
+            current_page: page
+        });
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
-
 exports.getById = async (req, res) => {
     const { id } = req.params;
     if (isNaN(id)) return res.status(400).json({ message: "ID harus angka" });
