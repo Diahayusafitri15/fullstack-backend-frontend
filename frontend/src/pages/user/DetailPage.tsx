@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getPostById } from "../../api/post.service";
+import RuangDiskusi from "../../components/RuangDiskusi"; // Import komponen baru
 
 // Fungsi pembersih URL agar gambar muncul dari MinIO
 const getImageUrl = (path: string) => {
   if (!path) return "https://via.placeholder.com/600x600?text=No+Image";
-  // Menghapus tanda kutip yang mungkin terselip dari database
   return path.trim().replace(/"/g, "");
 };
 
@@ -80,6 +80,12 @@ export default function DetailPage() {
           </div>
         </div>
       </main>
+
+      {/* --- BAGIAN RUANG DISKUSI --- */}
+      {/* Diletakkan di bawah main agar sesuai dengan layout yang kamu inginkan */}
+      <section className="border-t border-gray-50 mt-10">
+         <RuangDiskusi postId={id} />
+      </section>
     </div>
   );
 }

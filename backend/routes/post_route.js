@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const postController = require('../controllers/post_controller');
+const userController = require('../controllers/user_controller'); // Import controller user untuk fitur komentar
 const auth = require('../middlewares/auth');
-// Ambil middleware baru yang ada Sharp & MinIO-nya
 const { upload, uploadToMinio } = require('../middlewares/upload_minio'); 
 const { body } = require('express-validator');
 
@@ -12,31 +12,38 @@ const postValidation = [
     body('category_id').isNumeric().withMessage('Kategori harus berupa angka ID')
 ];
 
-// 1. Ambil semua post (Publik)
+// --- ROUTES POSTINGAN (SUDAH ADA) ---
 router.get('/', postController.getAll);
-
-// 2. Ambil satu post (Publik)
 router.get('/:id', postController.getById);
 
-// 3. Tambah Post Baru (Wajib Login + Resize + MinIO)
 router.post('/', 
-    auth,                       // 1. Cek Token JWT
-    upload.single('gambar'),    // 2. Terima file ke RAM
-    uploadToMinio,              // 3. Resize Sharp & Kirim ke MinIO
-    postValidation,             // 4. Validasi Teks
-    postController.create       // 5. Simpan URL ke Database
+    auth, 
+    upload.single('gambar'), 
+    uploadToMinio, 
+    postValidation, 
+    postController.create 
 );
 
-// 4. Update Post (Wajib Login + Resize + MinIO)
 router.put('/:id', 
     auth, 
     upload.single('gambar'), 
-    uploadToMinio,              // Tetap pasang ini agar jika ganti gambar, langsung masuk MinIO
+    uploadToMinio, 
     postValidation, 
     postController.update
 );
 
-// 5. Hapus Post (Wajib Login)
 router.delete('/:id', auth, postController.remove);
+
+// --- ROUTES KOMENTAR & RATING (TAMBAHAN BARU) ---
+
+// 1. Ambil semua komentar untuk postingan tertentu (Publik)
+router.get('/:postId/comments', userController.getCommentsByPost);
+
+// 2. Tambah Komentar & Rating (Wajib Login)
+// Kita pakai middleware 'auth' agar email pengirim otomatis tercatat
+router.post('/comments', auth, userController.addComment);
+
+// 3. Hapus Komentar (Wajib Login & Khusus Admin)
+router.delete('/comments/:id', auth, userController.deleteComment);
 
 module.exports = router;
