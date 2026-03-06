@@ -40,11 +40,14 @@ export const getCategories = async (): Promise<Category[]> => {
   return res.data.data || [];
 };
 
-// 2. Ambil Semua Postingan (Disesuaikan untuk Pagination)
-// Kita beri nilai default page=1 dan limit=8
-export const getPosts = async (page = 1, limit = 8): Promise<PaginatedPostResponse> => {
+/**
+ * 2. Ambil Semua Postingan (Disesuaikan untuk Pagination & Search)
+ * Menambahkan parameter search dengan nilai default string kosong.
+ */
+export const getPosts = async (page = 1, limit = 8, search = ""): Promise<PaginatedPostResponse> => {
   const res = await axiosInstance.get<PaginatedPostResponse>(`/posts`, {
-    params: { page, limit } // Axios akan otomatis mengubah ini jadi /posts?page=1&limit=8
+    // Axios akan otomatis menyusun menjadi /posts?page=1&limit=8&search=keyword
+    params: { page, limit, search } 
   });
   return res.data; 
 };
