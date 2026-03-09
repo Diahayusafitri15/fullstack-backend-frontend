@@ -99,10 +99,10 @@ export default function Login() {
           {/* Header Portal */}
           <div className="bg-pink-500 p-8 text-center">
             <h1 className="text-white text-2xl font-black uppercase tracking-[0.3em] italic">
-              {isLoginView ? "SOUVNELA" : "JOIN US"}
+              {isLoginView ? "Yahyu Handmade" : "JOIN US"}
             </h1>
             <p className="text-pink-100 text-[10px] font-bold uppercase mt-2 tracking-widest opacity-90">
-              {isLoginView ? "Selamat Datang Kembali, Cantik! 🎀" : "Mulai Koleksi Souvenirmu 🌸"}
+              {isLoginView ? "Selamat Datang Kembali, Bestie! 🎀" : "Mulai Koleksi Souvenirmu 🌸"}
             </p>
           </div>
 

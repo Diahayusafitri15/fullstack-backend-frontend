@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, User, ShoppingBag } from "lucide-react";
+import { LogOut, ShoppingBag, LayoutDashboard, Info, Box } from "lucide-react";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -7,6 +7,9 @@ export default function Navbar() {
   // 1. Ambil data user dari localStorage
   const userString = localStorage.getItem("user");
   const userData = userString ? JSON.parse(userString) : null;
+  
+  // Tentukan apakah user adalah Admin
+  const isAdmin = userData?.role === "admin";
 
   const handleLogout = () => {
     if (window.confirm("Yakin ingin keluar, Cantik? 🌸")) {
@@ -30,25 +33,47 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* MENU TENGAH */}
+        {/* MENU TENGAH - DINAMIS BERDASARKAN ROLE */}
         <div className="hidden md:flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-          <Link to="/" className="hover:text-pink-500 transition-colors">Katalog</Link>
-          <Link to="/about" className="hover:text-pink-500 transition-colors">Tentang Kami</Link>
+          {isAdmin ? (
+            // Menu khusus Admin
+            <>
+              <Link to="/admin/posts" className="flex items-center gap-2 hover:text-pink-500 transition-colors">
+                <LayoutDashboard size={14} /> Kelola Dashboard
+              </Link>
+              <Link to="/admin/categories" className="flex items-center gap-2 hover:text-pink-500 transition-colors">
+                <Box size={14} /> Kategori
+              </Link>
+            </>
+          ) : (
+            // Menu khusus User Umum
+            <>
+              <Link to="/" className="hover:text-pink-500 transition-colors">Katalog</Link>
+              <Link to="/about" className="flex items-center gap-2 hover:text-pink-500 transition-colors">
+                <Info size={14} /> Tentang Kami
+              </Link>
+            </>
+          )}
         </div>
 
-        {/* --- BAGIAN YANG KAMU MAKSUD (USER SECTION) --- */}
+        {/* USER SECTION */}
         <div className="flex items-center gap-4">
           {userData ? (
-            // JIKA SUDAH LOGIN: Tampilkan Nama/Email dan Tombol Logout
             <div className="flex items-center gap-3 bg-pink-50 pl-4 pr-1.5 py-1.5 rounded-2xl border border-pink-100">
               <div className="flex flex-col items-end">
-                <span className="text-[9px] font-black text-pink-400 uppercase leading-none">Logged in as</span>
-                {/* Menampilkan email user */}
+                {/* Label Role agar Admin tahu dia sedang dalam mode pengelola */}
+                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase leading-none mb-1 ${
+                  isAdmin ? 'bg-pink-500 text-white' : 'text-pink-400'
+                }`}>
+                  {isAdmin ? "Administrator" : "Logged in as"}
+                </span>
                 <span className="text-[11px] font-bold text-gray-700">{userData.email}</span>
               </div>
               
               {/* Avatar Inisial */}
-              <div className="w-8 h-8 rounded-lg bg-pink-500 flex items-center justify-center text-white text-xs font-black shadow-sm">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black shadow-sm ${
+                isAdmin ? 'bg-gray-800' : 'bg-pink-500'
+              }`}>
                 {userData.email.charAt(0).toUpperCase()}
               </div>
 
@@ -61,7 +86,6 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            // JIKA BELUM LOGIN: Tampilkan tombol MASUK pink yang kamu punya
             <button 
               onClick={() => navigate("/login")}
               className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] tracking-widest transition-all shadow-lg shadow-pink-100 uppercase"

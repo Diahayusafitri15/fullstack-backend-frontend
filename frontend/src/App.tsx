@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // --- USER PAGES ---
 import HomePage from "./pages/user/HomePage"; 
 import DetailPage from "./pages/user/DetailPage";
-import AboutPage from "./pages/user/AboutPage"; // Menambahkan Halaman About agar tidak 404
+import AboutPage from "./pages/user/AboutPage"; 
 
 // --- AUTH & COMMON ---
 import Login from "./pages/Login";
@@ -17,24 +17,52 @@ import AdminKomentar from "./pages/admin/AdminKomentar";
 import CreatePostPage from "./pages/admin/CreatePostPage";
 import EditPostPage from "./pages/admin/EditPostPage";
 
+// --- LOGIKA PROTEKSI ROLE (Mencegah Admin masuk ke User Page) ---
+const PublicRoute = ({ children }: { children: JSX.Element }) => {
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  
+  // Jika dia Admin, jangan kasih lihat halaman user biasa, arahkan ke dashboard
+  if (user && user.role === "admin") {
+    return <Navigate to="/admin/posts" replace />;
+  }
+  
+  return children;
+};
+
 export default function App() {
   return (
     <Routes>
-      {/* --- PUBLIC ROUTES --- */}
-      {/* Halaman utama katalog souvenir */}
-      <Route path="/" element={<HomePage />} />
+      {/* --- PUBLIC ROUTES (Dibungkus PublicRoute agar Admin tidak masuk) --- */}
+      <Route 
+        path="/" 
+        element={
+          <PublicRoute>
+            <HomePage />
+          </PublicRoute>
+        } 
+      />
       
-      {/* Halaman detail produk berdasarkan ID */}
-      <Route path="/product/:id" element={<DetailPage />} />
+      <Route 
+        path="/product/:id" 
+        element={
+          <PublicRoute>
+            <DetailPage />
+          </PublicRoute>
+        } 
+      />
       
-      {/* Halaman Tentang Kami (SOUVNELA Story) */}
-      <Route path="/about" element={<AboutPage />} />
+      <Route 
+        path="/about" 
+        element={
+          <PublicRoute>
+            <AboutPage />
+          </PublicRoute>
+        } 
+      />
       
-      {/* Halaman Login & Register */}
       <Route path="/login" element={<Login />} />
 
       {/* --- PROTECTED ADMIN ROUTES --- */}
-      {/* Menggunakan ProtectedRoute untuk memastikan hanya role ADMIN yang bisa masuk */}
       <Route 
         path="/admin" 
         element={
@@ -43,7 +71,6 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        {/* Redirect otomatis dari /admin ke /admin/posts */}
         <Route index element={<Navigate to="posts" replace />} />
         
         {/* Manajemen Postingan Souvenir */}
@@ -55,12 +82,10 @@ export default function App() {
         <Route path="categories" element={<Categories />} />
 
         {/* Manajemen Komentar (Moderasi Diskusi Pengunjung) */}
-        {/* Sesuai dengan permintaan tampilan diskusi di kartu produk */}
         <Route path="comments" element={<AdminKomentar />} /> 
       </Route>
 
       {/* --- CATCH ALL / NOT FOUND --- */}
-      {/* Menampilkan pesan Oops! Tersesat Ya? jika rute tidak ditemukan */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
