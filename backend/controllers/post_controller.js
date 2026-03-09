@@ -1,24 +1,20 @@
 const Post = require('../models/post');
 const response = require('../utils/response');
 const { validationResult } = require('express-validator');
-const pool = require('../config/db'); // Digunakan untuk subquery manual jika model belum diupdate
+const pool = require('../config/db'); 
 
 const baseUrl = process.env.MINIO_BASE_URL;
 
 exports.getAll = async (req, res) => {
     try {
-        // 1. Ambil parameter dari query URL
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 8;
         const search = req.query.search || "";
 
-        // 2. Panggil model untuk data dasar
         const { rows, totalItems } = await Post.getAll(page, limit, search);
 
-        // --- PERBAIKAN: Ambil jumlah komentar untuk setiap postingan ---
-        // Kita gunakan Promise.all agar fetch jumlah komentar berjalan paralel (cepat)
+        // --- PERBAIKAN: Ambil jumlah komentar dengan konversi tipe data yang aman ---
         const formattedData = await Promise.all(rows.map(async (item) => {
-            // Query manual ke tabel comments berdasarkan post_id
             const commentCountResult = await pool.query(
                 "SELECT COUNT(*) as total FROM comments WHERE post_id = $1", 
                 [item.id]
@@ -26,17 +22,14 @@ exports.getAll = async (req, res) => {
             
             return {
                 ...item,
-                // Gabungkan Base URL ke path gambar
                 gambar: item.gambar ? `${baseUrl}/${item.gambar}` : null,
-                // Tambahkan field total_komentar agar muncul di Frontend
+                // Pastikan di-parse ke Integer agar frontend tidak bingung
                 total_komentar: parseInt(commentCountResult.rows[0].total) || 0
             };
         }));
 
-        // 3. Hitung total halaman
         const totalPages = Math.ceil(totalItems / limit);
 
-        // 4. Kirim response lengkap dengan info pagination dan total_komentar
         res.status(200).json({
             status: "success",
             message: "Data postingan berhasil diambil",
@@ -47,7 +40,7 @@ exports.getAll = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ status: "error", message: error.message });
     }
 };
 
@@ -61,7 +54,7 @@ exports.getById = async (req, res) => {
         
         const item = data.rows[0];
 
-        // Tambahkan hitungan komentar bahkan untuk single view (opsional tapi bagus)
+        // Ambil jumlah komentar untuk single view
         const commentCount = await pool.query("SELECT COUNT(*) as total FROM comments WHERE post_id = $1", [id]);
         
         if (item.gambar) item.gambar = `${baseUrl}/${item.gambar}`;
@@ -123,7 +116,6 @@ exports.remove = async (req, res) => {
     try {
         const post = await Post.getById(id);
         if (post.rows[0]) {
-            // Pastikan foreign key di DB diset ON DELETE CASCADE agar komentar ikut terhapus
             await Post.remove(id);
             response.success(res, null, 'Post berhasil dihapus');
         } else {
@@ -137,7 +129,8 @@ exports.remove = async (req, res) => {
 exports.addComment = async (req, res) => {
     try {
         const { postId, comment, rating } = req.body;
-        const userEmail = req.user.email; 
+        // Gunakan req.user.email jika sudah lewat middleware auth
+        const userEmail = req.user?.email || "anonymous@mail.com"; 
 
         const query = `
             INSERT INTO comments (post_id, email, comment, rating, created_at) 
@@ -157,7 +150,7 @@ exports.addComment = async (req, res) => {
             data: newComment.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ message: "Error Database: " + error.message });
+        res.status(500).json({ status: "error", message: "Error Database: " + error.message });
     }
 };
 
@@ -168,8 +161,8 @@ exports.getCommentsByPost = async (req, res) => {
             "SELECT * FROM comments WHERE post_id = $1 ORDER BY created_at DESC", 
             [postId]
         );
-        res.status(200).json({ data: result.rows });
+        res.status(200).json({ status: "success", data: result.rows });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ status: "error", message: error.message });
     }
 };
