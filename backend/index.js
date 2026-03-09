@@ -4,6 +4,9 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./utils/swagger');
 const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config();
+
 
 // 1. Pastikan folder 'routes' ada dan nama filenya sama persis
 const userRoutes = require('./routes/user_route');
