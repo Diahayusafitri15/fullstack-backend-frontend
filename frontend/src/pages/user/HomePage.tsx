@@ -1,16 +1,29 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPosts } from "../../api/post.service";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar"; 
 import { Search, Heart, ArrowRight, ArrowLeft, Loader2, Sparkles, MessageSquare } from "lucide-react";
 
+/**
+ * PERBAIKAN: Fungsi GetImageUrl
+ * Menggunakan IP 192.168.18.67 agar tidak ERR_NAME_NOT_RESOLVED
+ */
 const getImageUrl = (path: string) => {
   if (!path) return "https://via.placeholder.com/400x300?text=No+Image";
-  return path.trim().replace(/"/g, "");
+  
+  const cleanPath = path.trim().replace(/"/g, "");
+  
+  if (cleanPath.startsWith('http')) {
+    return `${cleanPath}${cleanPath.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+  }
+  
+  // Menggunakan IP terminal MinIO kamu
+  return `http://192.168.18.67:9000/my-bucket/${cleanPath}?t=${new Date().getTime()}`;
 };
 
 export default function HomePage() {
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [inputValue, setInputValue] = useState(""); 
   const [searchKeyword, setSearchKeyword] = useState(""); 
@@ -27,19 +40,22 @@ export default function HomePage() {
   }, [inputValue]);
 
   // Fetching data dengan React Query
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isRefetching } = useQuery({
     queryKey: ["posts", currentPage, searchKeyword], 
-    queryFn: () => getPosts(currentPage, postsPerPage, searchKeyword), 
+    queryFn: () => getPosts(currentPage, postsPerPage, searchKeyword),
+    staleTime: 0, 
+    refetchOnWindowFocus: true
   });
 
+  // Pastikan data diambil dengan benar dari struktur response backend kamu
   const posts = data?.data || [];
-  const totalPages = data?.total_pages || 1;
-  const totalItems = data?.total_items || 0;
+  const totalPages = parseInt(data?.total_pages) || 1;
+  const totalItems = parseInt(data?.total_items) || 0;
 
-  // Fungsi Scroll ke Atas saat ganti halaman
   const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
     setCurrentPage(newPage);
-    window.scrollTo({ top: 500, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (isLoading) return (
@@ -96,12 +112,14 @@ export default function HomePage() {
             </h2>
             <div className="h-2 w-24 bg-pink-500 rounded-full mt-2 shadow-lg shadow-pink-200"></div>
           </div>
-          <span className="bg-white border-2 border-pink-50 text-pink-500 px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-pink-100/50">
-            Total {totalItems} Produk
-          </span>
+          <div className="flex items-center gap-4">
+             {isRefetching && <Loader2 className="w-4 h-4 animate-spin text-pink-500" />}
+             <span className="bg-white border-2 border-pink-50 text-pink-500 px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-pink-100/50">
+               Total {totalItems} Produk
+             </span>
+          </div>
         </div>
         
-        {/* POIN 1: KONDISI JIKA DATA TIDAK DITEMUKAN (NOT FOUND) */}
         {posts.length === 0 ? (
           <div className="text-center py-40 bg-white rounded-[60px] border-4 border-dashed border-pink-50 shadow-inner">
             <div className="text-7xl mb-6 animate-bounce">🔍</div>
@@ -122,25 +140,23 @@ export default function HomePage() {
                   key={post.id} 
                   className="group bg-white rounded-[45px] overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-3 transition-all duration-500 flex flex-col border border-pink-50/50"
                 >
-                  <div className="relative h-80 overflow-hidden">
+                  <div className="relative h-80 overflow-hidden bg-gray-100">
                     <img
                       src={getImageUrl(post.gambar)}
                       alt={post.judul}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                      onError={(e: any) => { e.target.src = "https://via.placeholder.com/400x300?text=Error+Loading+Image" }}
                     />
                     
-                    {/* POIN 3: BADGE NOTIFIKASI KOMENTAR (POINT INI) */}
-                    {(post.komentars_count || post.total_komentar) > 0 && (
-                      <div className="absolute top-6 right-6 flex items-center gap-2 bg-pink-500 text-white px-4 py-2 rounded-full shadow-lg border-2 border-white animate-in zoom-in duration-500">
+                    {parseInt(post.total_komentar) > 0 && (
+                      <div className="absolute top-6 right-6 flex items-center gap-2 bg-pink-500 text-white px-4 py-2 rounded-full shadow-lg border-2 border-white">
                         <MessageSquare size={14} fill="white" />
-                        <span className="text-xs font-black">{post.komentars_count || post.total_komentar}</span>
-                        {/* Dot Notif Kecil */}
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-rose-600 rounded-full border-2 border-white"></div>
+                        <span className="text-xs font-black">{post.total_komentar}</span>
                       </div>
                     )}
 
                     <div className="absolute top-6 left-6 bg-white/95 backdrop-blur-md px-5 py-2 rounded-2xl text-[10px] font-black text-pink-600 uppercase tracking-widest shadow-md border border-white/50">
-                      {post.nama_kategori || "YAHYU"}
+                      {post.nama_kategori || "Souvenela"}
                     </div>
                   </div>
 
@@ -152,14 +168,6 @@ export default function HomePage() {
                       {post.isi}
                     </p>
                     
-                    {/* DISKUSI PENGUNJUNG BUTTON STYLE */}
-                    <div className="flex items-center gap-2 mb-6 px-4 py-2 bg-pink-50 rounded-2xl w-fit">
-                       <MessageSquare size={12} className="text-pink-500" />
-                       <span className="text-[9px] font-black text-pink-500 uppercase tracking-widest">
-                         {post.komentars_count || post.total_komentar || 0} Diskusi Pengunjung
-                       </span>
-                    </div>
-
                     <div className="w-full flex items-center justify-center gap-4 bg-gray-50 group-hover:bg-pink-500 text-gray-400 group-hover:text-white py-5 rounded-[30px] font-black text-[10px] tracking-[0.3em] transition-all duration-500 uppercase">
                       LIHAT DETAIL <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
                     </div>
@@ -168,42 +176,40 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* POIN 2: PAGINATION DENGAN NOMOR HALAMAN */}
-            {totalPages > 1 && (
-              <div className="flex flex-wrap justify-center items-center gap-4 mt-24">
-                <button 
-                  disabled={currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className="w-14 h-14 flex items-center justify-center bg-white rounded-[20px] text-pink-500 shadow-xl disabled:opacity-20 hover:bg-pink-500 hover:text-white transition-all border border-pink-50"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-                
-                <div className="flex gap-2 p-2 bg-white rounded-[25px] border border-pink-50 shadow-lg">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`w-12 h-12 rounded-[18px] text-[11px] font-black transition-all ${
-                        currentPage === pageNum 
-                        ? 'bg-pink-500 text-white shadow-lg shadow-pink-200' 
-                        : 'text-gray-400 hover:text-pink-500 hover:bg-pink-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-                </div>
-
-                <button 
-                  disabled={currentPage === totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className="w-14 h-14 flex items-center justify-center bg-white rounded-[20px] text-pink-500 shadow-xl disabled:opacity-20 hover:bg-pink-500 hover:text-white transition-all border border-pink-50"
-                >
-                  <ArrowRight size={20} />
-                </button>
+            {/* PAGINATION SECTION - Menampilkan minimal 1 halaman */}
+            <div className="flex flex-wrap justify-center items-center gap-4 mt-24">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="w-14 h-14 flex items-center justify-center bg-white rounded-[20px] text-pink-500 shadow-xl disabled:opacity-20 hover:enabled:bg-pink-500 hover:enabled:text-white transition-all border border-pink-50"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              
+              <div className="flex gap-2 p-2 bg-white rounded-[25px] border border-pink-50 shadow-lg">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`w-12 h-12 rounded-[18px] text-[11px] font-black transition-all ${
+                      currentPage === pageNum 
+                      ? 'bg-pink-500 text-white shadow-lg shadow-pink-200' 
+                      : 'text-gray-400 hover:text-pink-500 hover:bg-pink-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
               </div>
-            )}
+
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="w-14 h-14 flex items-center justify-center bg-white rounded-[20px] text-pink-500 shadow-xl disabled:opacity-20 hover:enabled:bg-pink-500 hover:enabled:text-white transition-all border border-pink-50"
+              >
+                <ArrowRight size={20} />
+              </button>
+            </div>
           </>
         )}
       </main>

@@ -1,68 +1,82 @@
 const express = require('express');
 const router = express.Router();
-const postController = require('../controllers/post_controller');
-const userController = require('../controllers/user_controller'); 
-const auth = require('../middlewares/auth'); // Middleware JWT kamu
-const { upload, uploadToMinio } = require('../middlewares/upload_minio'); 
-const { body } = require('express-validator');
 
-// Validasi input untuk postingan baru
-const postValidation = [
-    body('judul').notEmpty().withMessage('Judul wajib diisi').trim(),
-    body('isi').notEmpty().withMessage('Isi wajib diisi').trim(),
-    body('category_id').isNumeric().withMessage('Kategori harus berupa angka ID')
-];
+// Middleware upload MinIO
+const { upload, uploadToMinio } = require('../middlewares/upload_minio');
+const { verifyToken } = require('../middlewares/auth');
 
-// ==========================================
-// --- ROUTES KOMENTAR & MODERASI ---
-// ==========================================
+// Controller
+const {
+    getAll,
+    getById,
+    create,
+    update,
+    remove,
+    addComment,
+    getCommentsByPost,
+    getAllCommentsAdmin,
+    deleteCommentAdmin
+} = require('../controllers/post_controller');
 
-/** * PENTING: Route statis harus di atas route dinamis (/:id) 
- * agar tidak tertukar oleh Express.
+
+/**
+ * =========================
+ * PUBLIC ROUTES
+ * =========================
  */
 
-// 1. Ambil SEMUA komentar (Untuk Dashboard Admin)
-// Endpoint: GET /posts/comments/all
-router.get('/comments/all', auth, userController.getAllComments);
+// Ambil semua postingan
+router.get('/', getAll);
 
-// 2. Tambah Komentar & Rating (Wajib Login)
-// Endpoint: POST /posts/comments
-router.post('/comments', auth, userController.addComment);
+// Ambil semua komentar (ADMIN)
+router.get('/comments/all', verifyToken, getAllCommentsAdmin);
 
-// 3. Hapus Komentar (Wajib Login - Admin atau Pemilik)
-// Endpoint: DELETE /posts/comments/:id
-router.delete('/comments/:id', auth, userController.deleteComment);
+// Ambil komentar berdasarkan post
+router.get('/comments/:postId', getCommentsByPost);
 
-// 4. Ambil komentar per postingan tertentu
-// Endpoint: GET /posts/:postId/comments
-router.get('/:postId/comments', userController.getCommentsByPost);
+// Ambil detail post
+router.get('/:id', getById);
 
 
-// ==========================================
-// --- ROUTES POSTINGAN (UTAMA) ---
-// ==========================================
+/**
+ * =========================
+ * PROTECTED ROUTES (USER)
+ * =========================
+ */
 
-router.get('/', postController.getAll);
+// Tambah komentar
+router.post('/comments', verifyToken, addComment);
 
-// Route dinamis /:id diletakkan di bawah agar tidak bentrok dengan /comments
-router.get('/:id', postController.getById);
 
-router.post('/', 
-    auth, 
-    upload.single('gambar'), 
-    uploadToMinio, 
-    postValidation, 
-    postController.create 
+/**
+ * =========================
+ * ADMIN ROUTES
+ * =========================
+ */
+
+// CREATE POST
+router.post(
+    '/',
+    verifyToken,
+    upload.single('gambar'),
+    uploadToMinio,
+    create
 );
 
-router.put('/:id', 
-    auth, 
-    upload.single('gambar'), 
-    uploadToMinio, 
-    postValidation, 
-    postController.update
+// UPDATE POST
+router.put(
+    '/:id',
+    verifyToken,
+    upload.single('gambar'),
+    uploadToMinio,
+    update
 );
 
-router.delete('/:id', auth, postController.remove);
+// DELETE POST
+router.delete('/:id', verifyToken, remove);
+
+// DELETE COMMENT (ADMIN)
+router.delete('/comments/:commentId', verifyToken, deleteCommentAdmin);
+
 
 module.exports = router;

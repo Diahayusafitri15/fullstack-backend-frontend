@@ -1,6 +1,8 @@
 const userSwagger = require('../routes/user_swagger');
 const postSwagger = require('../routes/post_swagger');
 const categorySwagger = require('../routes/category_swagger');
+// 1. Tambahkan import untuk swagger order
+const orderSwagger = require('../routes/order_swagger');
 
 module.exports = {
     openapi: '3.0.0',
@@ -31,6 +33,8 @@ module.exports = {
         // Menggabungkan semua path dari file swagger terpisah
         ...userSwagger.paths,
         ...postSwagger.paths,
-        ...categorySwagger.paths
+        ...categorySwagger.paths,
+        // 2. Tambahkan paths dari orderSwagger
+        ...orderSwagger.paths
     }
 };

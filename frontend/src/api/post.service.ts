@@ -1,17 +1,18 @@
 import axiosInstance from "./axios";
 import { Category } from "../types/category";
 
+// 1. Interface Dasar
 export interface Post {
   id: number;
   judul: string;
   isi: string;
+  harga: number;
   gambar: string;
   category_id: number;
   nama_kategori?: string;
   created_at: string;
 }
 
-// Tambahkan interface khusus untuk Response Pagination agar tidak error di component
 export interface PaginatedPostResponse {
   status: string;
   message: string;
@@ -30,64 +31,83 @@ export interface ApiResponse<T> {
 export interface CreatePostPayload {
   judul: string;
   isi: string;
-  category_id: string;
-  gambar: File | null;
+  harga: number;
+  category_id: string | number;
+  gambar: File | FileList | null;
 }
 
-// 1. Ambil Semua Kategori
+// 2. Helper untuk konversi Object ke FormData (Menghindari pengulangan kode)
+const buildFormData = (data: Partial<CreatePostPayload>): FormData => {
+  const formData = new FormData();
+  
+  if (data.judul) formData.append("judul", data.judul);
+  if (data.isi) formData.append("isi", data.isi);
+  if (data.harga !== undefined) formData.append("harga", String(data.harga));
+  if (data.category_id) formData.append("category_id", String(data.category_id));
+
+  if (data.gambar) {
+    if (data.gambar instanceof FileList && data.gambar.length > 0) {
+      formData.append("gambar", data.gambar[0]);
+    } else if (data.gambar instanceof File) {
+      formData.append("gambar", data.gambar);
+    }
+  }
+  
+  return formData;
+};
+
+/**
+ * ==========================================
+ * SERVICE FUNCTIONS
+ * ==========================================
+ */
+
+// Ambil Semua Kategori
 export const getCategories = async (): Promise<Category[]> => {
   const res = await axiosInstance.get<ApiResponse<Category[]>>("/categories");
   return res.data.data || [];
 };
 
-/**
- * 2. Ambil Semua Postingan (Disesuaikan untuk Pagination & Search)
- * Menambahkan parameter search dengan nilai default string kosong.
- */
+// Ambil Semua Postingan (Pagination & Search)
 export const getPosts = async (page = 1, limit = 8, search = ""): Promise<PaginatedPostResponse> => {
   const res = await axiosInstance.get<PaginatedPostResponse>(`/posts`, {
-    // Axios akan otomatis menyusun menjadi /posts?page=1&limit=8&search=keyword
     params: { page, limit, search } 
   });
   return res.data; 
 };
 
-// 3. Ambil Satu Postingan Berdasarkan ID
+// Ambil Satu Postingan Berdasarkan ID
 export const getPostById = async (id: string | number): Promise<Post> => {
   const res = await axiosInstance.get<ApiResponse<Post>>(`/posts/${id}`);
   return res.data.data;
 };
 
-// 4. Buat Postingan Baru
+// Buat Postingan Baru
 export const createPost = async (data: CreatePostPayload) => {
-  const formData = new FormData();
-  formData.append("judul", data.judul);
-  formData.append("isi", data.isi);
-  formData.append("category_id", data.category_id);
-  if (data.gambar) formData.append("gambar", data.gambar);
+  const formData = buildFormData(data);
 
   return axiosInstance.post("/posts", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
 
-// 5. Update Postingan
-export const updatePost = async (id: string | number, data: Partial<CreatePostPayload>) => {
-  const formData = new FormData();
-  if (data.judul) formData.append("judul", data.judul);
-  if (data.isi) formData.append("isi", data.isi);
-  if (data.category_id) formData.append("category_id", String(data.category_id));
-  
-  if (data.gambar instanceof File) {
-    formData.append("gambar", data.gambar);
-  }
+/**
+ * Update Postingan
+ * Mendukung pengiriman langsung dalam bentuk FormData (dari Page)
+ * atau dalam bentuk Object (Payload)
+ */
+export const updatePost = async (id: string | number, data: FormData | Partial<CreatePostPayload>) => {
+  // Jika data yang dikirim sudah FormData, langsung kirim
+  const payload = data instanceof FormData ? data : buildFormData(data);
 
-  return axiosInstance.put(`/posts/${id}`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+  return axiosInstance.put(`/posts/${id}`, payload, {
+    headers: { 
+      "Content-Type": "multipart/form-data" 
+    },
   });
 };
 
-// 6. Hapus Postingan
+// Hapus Postingan
 export const deletePost = async (id: number) => {
   return axiosInstance.delete(`/posts/${id}`);
-};
+}; 

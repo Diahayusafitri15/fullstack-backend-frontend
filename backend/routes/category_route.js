@@ -1,30 +1,40 @@
 const express = require('express');
 const router = express.Router();
+
+// Import middleware auth
+const { verifyToken, isAdmin } = require('../middlewares/auth');
+
+// Import controller kategori
 const categoryController = require('../controllers/category_controller');
-const auth = require('../middlewares/auth');
-const { body } = require('express-validator');
 
-// 1. Ambil semua kategori (Publik)
-router.get('/', categoryController.getAll);
 
-// 2. Ambil kategori berdasarkan ID (Publik) - BARU
-router.get('/:id', categoryController.getById);
+/**
+ * ==============================
+ * PUBLIC ROUTES (TIDAK PERLU LOGIN)
+ * ==============================
+ */
 
-// 3. Tambah kategori baru (Wajib Login)
-router.post('/', 
-    auth, 
-    [body('nama_kategori').notEmpty().withMessage('Nama kategori wajib diisi')], 
-    categoryController.create
-);
+// Ambil semua kategori
+router.get('/', categoryController.getAllCategories);
 
-// 4. Update kategori (Wajib Login) - BARU
-router.put('/:id', 
-    auth, 
-    [body('nama_kategori').notEmpty().withMessage('Nama kategori wajib diisi')], 
-    categoryController.update
-);
+// Ambil kategori berdasarkan ID
+router.get('/:id', categoryController.getCategoryById);
 
-// 5. Hapus kategori (Wajib Login)
-router.delete('/:id', auth, categoryController.remove);
+
+/**
+ * ==============================
+ * ADMIN ROUTES (WAJIB LOGIN + ADMIN)
+ * ==============================
+ */
+
+// Tambah kategori
+router.post('/', verifyToken, isAdmin, categoryController.createCategory);
+
+// Update kategori
+router.put('/:id', verifyToken, isAdmin, categoryController.updateCategory);
+
+// Hapus kategori
+router.delete('/:id', verifyToken, isAdmin, categoryController.deleteCategory);
+
 
 module.exports = router;
